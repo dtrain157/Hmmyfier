@@ -86,7 +86,7 @@ config = load_config()
 if config["frequency"] == "week":
     schedule.every().friday.at(config["time"]).do(hmmify_job)
 elif config["frequency"] == "day":
-    schedule.every().friday.at(config["time"]).do(hmmify_job)
+    schedule.every().day.at(config["time"]).do(hmmify_job)
 else:
     raise ValueError('The "frequency" value in the config .yaml file is unknown. Suitable values are "week" or "day".')
 
