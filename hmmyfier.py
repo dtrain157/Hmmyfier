@@ -2,6 +2,7 @@ import urllib.request
 import urllib.parse
 import constants
 import datetime
+import logging
 import mimetypes
 import os
 import re
@@ -31,12 +32,22 @@ def download_images(output_folder):
 
     req = urllib.request.Request(url, data)
 
-    try:
-        resp = urllib.request.urlopen(req)
-    except urllib.HTTPError as e:
-        if e.code == 429:
-            time.sleep(30)
+    trycounter = 3
+    shouldTryAgain = True
+    while (shouldTryAgain) & (trycounter > 0):
+        try:
             resp = urllib.request.urlopen(req)
+            shouldTryAgain = False
+        except urllib.error.HTTPError as e:
+            if e.code == 429:
+                time.sleep(30)
+                trycounter = trycounter - 1
+                shouldTryAgain = True
+            else:
+                shouldTryAgain = False
+                logger.error(e)
+        except Exception as e:
+            logger.error(e)
 
     images = re.findall(r'(data-url=".+?")', str(resp.read()))
 
@@ -78,10 +89,15 @@ def hmmify_job():
     output_folder = os.path.join(config["outputFolder"], now.strftime("%Y-%m-%d"))
     create_directory(output_folder)
     download_images(output_folder)
-    send_images_via_email(output_folder)
+    # send_images_via_email(output_folder)
 
+
+logging.basicConfig(filename='/temp/hmmyfier.log', level=logging.ERROR, format='%(asctime)s %(levelname)s %(name)s %(message)s')
+logger = logging.getLogger(__name__)
 
 config = load_config()
+hmmify_job()
+
 
 if config["frequency"] == "week":
     schedule.every().friday.at(config["time"]).do(hmmify_job)
